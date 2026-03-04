@@ -145,25 +145,28 @@ def index():
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    data = request.get_json()
-    mensagem = data.get("message", "")
-
     try:
+        data = request.get_json(silent=True) or {}
+        mensagem = data.get("message", "")
+
+        if not mensagem:
+            return jsonify({"response": "Mensagem vazia."})
+
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "Você é um assistente útil e direto."},
                 {"role": "user", "content": mensagem}
             ],
-            temperature=0.7,
         )
 
         resposta = response.choices[0].message.content
 
-    except Exception as e:
-        resposta = f"Erro ao consultar OpenAI: {str(e)}"
+        return jsonify({"response": resposta})
 
-    return jsonify({"response": resposta})
+    except Exception as e:
+        return jsonify({"response": f"Erro: {str(e)}"})
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
